@@ -266,34 +266,36 @@ def _convert_rgb_to_marker_color(rgb_dict):
 
 def _find_timecode_mobs(item):
     mobs = [item.mob]
-
-    for c in item.walk():
-        if isinstance(c, aaf2.components.SourceClip):
-            mob = c.mob
-            if mob:
-                mobs.append(mob)
+    try:
+        for c in item.walk():
+            if isinstance(c, aaf2.components.SourceClip):
+                mob = c.mob
+                if mob:
+                    mobs.append(mob)
+                else:
+                    continue
             else:
+                # This could be 'EssenceGroup', 'Pulldown' or other segment
+                # subclasses
+                # For example:
+                # An EssenceGroup is a Segment that has one or more
+                # alternate choices, each of which represent different variations
+                # of one actual piece of content.
+                # According to the AAF Object Specification and Edit Protocol
+                # documents:
+                # "Typically the different representations vary in essence format,
+                # compression, or frame size. The application is responsible for
+                # choosing the appropriate implementation of the essence."
+                # It also says they should all have the same length, but
+                # there might be nested Sequences inside which we're not attempting
+                # to handle here (yet). We'll need a concrete example to ensure
+                # we're doing the right thing.
+                # TODO: Is the Timecode for an EssenceGroup correct?
+                # TODO: Try CountChoices() and ChoiceAt(i)
+                # For now, lets just skip it.
                 continue
-        else:
-            # This could be 'EssenceGroup', 'Pulldown' or other segment
-            # subclasses
-            # For example:
-            # An EssenceGroup is a Segment that has one or more
-            # alternate choices, each of which represent different variations
-            # of one actual piece of content.
-            # According to the AAF Object Specification and Edit Protocol
-            # documents:
-            # "Typically the different representations vary in essence format,
-            # compression, or frame size. The application is responsible for
-            # choosing the appropriate implementation of the essence."
-            # It also says they should all have the same length, but
-            # there might be nested Sequences inside which we're not attempting
-            # to handle here (yet). We'll need a concrete example to ensure
-            # we're doing the right thing.
-            # TODO: Is the Timecode for an EssenceGroup correct?
-            # TODO: Try CountChoices() and ChoiceAt(i)
-            # For now, lets just skip it.
-            continue
+    except:
+        pass
 
     return mobs
 
@@ -415,7 +417,10 @@ def _transcribe(item, parents, edit_rate, indent=0):
 
             # Use a heuristic to find the starting timecode from
             # this track and use it for the Timeline's global_start_time
-            start_time = _find_timecode_track_start(track)
+            try:
+                start_time = _find_timecode_track_start(track)
+            except:
+                start_time = 0
             if start_time:
                 result.global_start_time = start_time
 
