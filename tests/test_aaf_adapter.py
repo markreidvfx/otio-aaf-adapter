@@ -200,6 +200,11 @@ MARKER_OVER_AUDIO_PATH = os.path.join(
     "marker-over-audio.aaf"
 )
 
+SUBSEQUNCE_AUDIO_PATH = os.path.join(
+    SAMPLE_DATA_DIR,
+    "subsequence_audio.aaf"
+)
+
 
 try:
     lib_path = os.environ.get("OTIO_AAF_PYTHON_LIB")
@@ -1153,6 +1158,22 @@ class AAFReaderTests(unittest.TestCase):
             self.assertEqual(color, expected_marker.get('color'))
             self.assertEqual(label, expected_marker.get('label'))
             self.assertEqual(start_time, expected_marker.get('start_time'))
+
+    def test_aaf_subsequence_audio_file(self):
+        timeline = None
+
+        try:
+            timeline = otio.adapters.read_from_file(
+                SUBSEQUNCE_AUDIO_PATH
+            )
+
+        except Exception as e:
+            print('[ERROR] Transcribing test sample data `{}` caused an exception: {}'.format(  # noqa
+                os.path.basename(SUBSEQUNCE_AUDIO_PATH),
+                e)
+            )
+
+        self.assertIsNotNone(timeline)
 
     def _verify_user_comments(self, aaf_metadata, expected_md):
 
