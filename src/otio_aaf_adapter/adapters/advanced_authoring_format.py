@@ -1155,6 +1155,11 @@ def _transcribe_operation_group(item, parents, metadata, edit_rate, indent):
         effect = otio.schema.Effect()
         effect.effect_name = ""
 
+    rendering = item.getvalue("Rendering")
+    if rendering:
+        rendering = _transcribe(rendering, parents + [item], edit_rate, indent)
+        metadata["Rendering"] = rendering
+
     if effect is not None:
         result.effects.append(effect)
 
@@ -1626,6 +1631,12 @@ def _simplify(thing):
 
                 thing.source_range = otio.opentime.TimeRange(
                     duration=thing.source_range.duration)
+
+        if _has_effects(thing):
+            for effect in thing.effects:
+                rendering = effect.metadata.get("AAF", {}).get("Rendering", None)
+                if rendering:
+                    effect.metadata["AAF"]["Rendering"] = _simplify(rendering)
 
         # skip redundant containers
         if _is_redundant_container(thing):
