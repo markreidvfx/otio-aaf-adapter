@@ -1640,12 +1640,11 @@ def read_from_file(
 
 def write_to_file(input_otio, filepath, **kwargs):
 
+    timeline = aaf_writer._stackify_nested_groups(input_otio)
+
+    aaf_writer.validate_metadata(timeline)
+
     with aaf2.open(filepath, "w") as f:
-
-        timeline = aaf_writer._stackify_nested_groups(input_otio)
-
-        aaf_writer.validate_metadata(timeline)
-
         otio2aaf = aaf_writer.AAFFileTranscriber(timeline, f, **kwargs)
 
         if not isinstance(timeline, otio.schema.Timeline):
