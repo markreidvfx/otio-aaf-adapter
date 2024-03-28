@@ -821,6 +821,14 @@ def _transcribe(item, parents, edit_rate, indent=0):
         _transcribe_log(msg, indent)
         result = _transcribe_operation_group(item, parents, metadata,
                                              edit_rate, indent + 2)
+        metadata = {}
+
+        # name the OperationGroup the name of the first clip found
+        # in effect with a name
+        for otio_clip in result.find_clips():
+            if otio_clip.name:
+                result.name = otio_clip.name
+                break
 
     elif isinstance(item, aaf2.mobslots.TimelineMobSlot):
         msg = f"Creating Track for TimelineMobSlot for {_encoded_name(item)}"
@@ -1111,7 +1119,7 @@ def _transcribe_operation_group(item, parents, metadata, edit_rate, indent):
 
     operation = metadata.get("Operation", {})
     parameters = metadata.get("Parameters", {})
-    result.name = operation.get("Name")
+    result.name = operation.get("Name", "OperationGroup")
 
     # Trust the length that is specified in the AAF
     length = metadata.get("Length")
@@ -1142,27 +1150,27 @@ def _transcribe_operation_group(item, parents, metadata, edit_rate, indent):
             # Unsupported time effect
             effect = otio.schema.TimeEffect()
             effect.effect_name = ""
-            effect.name = operation.get("Name")
     else:
         # Unsupported effect
         effect = otio.schema.Effect()
         effect.effect_name = ""
-        effect.name = operation.get("Name")
 
     if effect is not None:
         result.effects.append(effect)
 
         effect.metadata.clear()
-        effect.metadata.update({
-            "AAF": {
-                "Operation": operation,
-                "Parameters": parameters
-            }
-        })
+        effect.metadata["AAF"] = metadata
+        effect.name = operation.get("Name")
 
     for segment in item.getvalue("InputSegments", []):
         child = _transcribe(segment, parents + [item], edit_rate, indent)
         if child:
+            if not isinstance(child, otio.schema.Track):
+                track = otio.schema.Track()
+                track.kind = _transcribe_media_kind(segment.media_kind)
+                track.append(child)
+                child = track
+
             _add_child(result, child, segment)
 
     return result
